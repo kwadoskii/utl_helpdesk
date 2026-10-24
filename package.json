@@ -2,7 +2,12 @@
   "name": "support-ticketing-nextjs",
   "private": true,
   "version": "0.1.0",
-  "scripts": { "dev": "next dev", "build": "next build", "start": "next start", "lint": "next lint" },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "tsc --noEmit"
+  },
   "dependencies": {
     "@azure/msal-browser": "^4.13.0",
     "@azure/msal-react": "^3.0.13",

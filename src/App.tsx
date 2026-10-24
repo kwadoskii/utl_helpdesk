@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  ChangeEvent,
-  FormEvent,
-  SyntheticEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useMsal } from "@azure/msal-react";
 import { AccountInfo } from "@azure/msal-browser";
@@ -42,6 +34,7 @@ import {
 type Status = "Open" | "In progress" | "Pending" | "Resolved" | "Closed";
 type TicketItem = {
   _id: string;
+  requesterId?: string;
   ticketNumber: string;
   subject: string;
   requesterName?: string;
@@ -74,6 +67,7 @@ type Article = {
   content?: string;
   tags?: string[];
 };
+
 const nav = [
   {
     label: "Workspace",
@@ -219,12 +213,28 @@ export default function App() {
       ),
     [tickets, filter, query],
   );
+
   const isSupport = Boolean(
     account?.idTokenClaims &&
-    ((account.idTokenClaims as any).roles || []).some((r: string) =>
+    (((account.idTokenClaims as any).roles || []).some((r: string) =>
       ["Support.Agent", "Support.Access"].includes(r),
-    ),
+    ) ||
+      ((account.idTokenClaims as any).groups || []).includes(
+        process.env.NEXT_PUBLIC_IT_SUPPORT_GROUP_ID || "",
+      )),
   );
+
+  const visibleNav = isSupport
+    ? nav
+    : [
+        {
+          label: "Workspace",
+          items: nav
+            .flatMap((group) => group.items)
+            .filter((item) => ["/my-tickets", "/knowledge-base"].includes(item.path)),
+        },
+      ];
+
   const navigate = (path: string) => {
     setMobileNav(false);
     setError("");
@@ -232,7 +242,7 @@ export default function App() {
   };
   const signOut = () => instance.logoutRedirect({ account: account || undefined });
 
-  async function createTicket(e: SyntheticEvent) {
+  async function createTicket(e: FormEvent) {
     e.preventDefault();
     if (!account || !newTitle.trim() || !newDesc.trim()) return;
     setBusy(true);
@@ -261,7 +271,7 @@ export default function App() {
       setBusy(false);
     }
   }
-  async function sendReply(e: SyntheticEvent) {
+  async function sendReply(e: FormEvent) {
     e.preventDefault();
     if (!account || !selectedTicket || (!reply.trim() && !replyFiles?.length)) return;
     setBusy(true);
@@ -300,6 +310,28 @@ export default function App() {
       await loadTickets();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not claim ticket.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function closeTicket() {
+    if (!account || !selectedTicket) return;
+    if (!window.confirm("Close this ticket? You will not be able to reply after it is closed."))
+      return;
+    setBusy(true);
+    setError("");
+    try {
+      const t = await apiRequest<TicketItem>(
+        instance,
+        account,
+        `/tickets/${selectedTicket._id}/close`,
+        { method: "PATCH", body: JSON.stringify({}) },
+      );
+      setSelectedTicket(t);
+      setTickets((old) => old.map((x) => (x._id === t._id ? { ...x, ...t } : x)));
+      await loadTickets();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not close ticket.");
     } finally {
       setBusy(false);
     }
@@ -347,10 +379,8 @@ export default function App() {
             <X size={18} />
           </button>
         </div>
-        <button className="new-ticket" onClick={() => setShowNew(true)}>
-          <Plus size={17} /> Create a ticket
-        </button>
-        {nav.map((group) => (
+
+        {visibleNav.map((group) => (
           <div className="nav-group" key={group.label}>
             <div className="nav-label">{group.label}</div>
             {group.items.map((item) => (
@@ -367,16 +397,6 @@ export default function App() {
           </div>
         ))}
         <div className="sidebar-bottom">
-          <div className="help-card">
-            <div className="help-icon">
-              <CircleHelp size={18} />
-            </div>
-            <strong>Need a hand?</strong>
-            <p>Check the knowledge base for quick answers.</p>
-            <button onClick={() => navigate("/knowledge-base")}>
-              Browse articles <span>→</span>
-            </button>
-          </div>
           <div className="user-row">
             <div className="avatar">
               {(account?.name || "MIS")
@@ -387,7 +407,8 @@ export default function App() {
             </div>
             <div className="user-info">
               <strong>{account?.name || "Signed-in user"}</strong>
-              <span>Microsoft Entra ID</span>
+              <span>{account?.username}</span>
+              <span>UTL & UTLAM</span>
             </div>
             <button className="icon-btn" title="Sign out" onClick={signOut}>
               <LogOut size={16} />
@@ -557,6 +578,7 @@ export default function App() {
                 onReply={sendReply}
                 onClaim={claimTicket}
                 onStatus={changeStatus}
+                onClose={closeTicket}
                 busy={busy}
                 isSupport={isSupport}
               />
@@ -568,7 +590,7 @@ export default function App() {
               <div>
                 <div className="eyebrow">SELF-SERVICE SUPPORT</div>
                 <h1>Knowledge base</h1>
-                <p>Search published MIS help articles from the backend.</p>
+                <p>Search published MIS help article and guides.</p>
               </div>
             </div>
             <div className="kb-search">
@@ -859,6 +881,7 @@ function TicketConversation({
   onReply,
   onClaim,
   onStatus,
+  onClose,
   busy,
   isSupport,
 }: any) {
@@ -954,25 +977,38 @@ function TicketConversation({
               </button>
             </div>
           </form>
-          {isSupport && (
-            <div className="conversation-actions">
-              <button className="secondary-btn" disabled={busy} onClick={onClaim}>
-                Claim ticket
-              </button>
-              <label>
-                Status{" "}
-                <select
-                  value={ticket.status}
-                  onChange={(e) => onStatus(e.target.value)}
-                  disabled={busy}
-                >
-                  {["Open", "In progress", "Pending", "Resolved", "Closed"].map((s: string) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          )}
+          {(isSupport ||
+            (ticket.requesterId &&
+              ticket.requesterId ===
+                ((account?.idTokenClaims as any)?.oid || (account?.idTokenClaims as any)?.sub))) &&
+            ticket.status !== "Closed" && (
+              <div className="conversation-actions">
+                {isSupport && (
+                  <>
+                    <button className="secondary-btn" disabled={busy} onClick={onClaim}>
+                      Claim ticket
+                    </button>
+                    <label>
+                      Status{" "}
+                      <select
+                        value={ticket.status}
+                        onChange={(e) => onStatus(e.target.value)}
+                        disabled={busy}
+                      >
+                        {["Open", "In progress", "Pending", "Resolved", "Closed"].map(
+                          (s: string) => (
+                            <option key={s}>{s}</option>
+                          ),
+                        )}
+                      </select>
+                    </label>
+                  </>
+                )}
+                <button className="secondary-btn" disabled={busy} onClick={onClose}>
+                  Close ticket
+                </button>
+              </div>
+            )}
         </>
       ) : (
         <div className="empty">Select a ticket from the list to view its conversation.</div>

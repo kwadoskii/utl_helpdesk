@@ -1,7 +1,12 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import { PublicClientApplication, EventType, AuthenticationResult } from "@azure/msal-browser";
+import {
+  PublicClientApplication,
+  EventType,
+  AuthenticationResult,
+  InteractionStatus,
+} from "@azure/msal-browser";
 import { MsalProvider, useMsal } from "@azure/msal-react";
 
 const clientId = process.env.NEXT_PUBLIC_ENTRA_CLIENT_ID || "";
@@ -22,9 +27,17 @@ function AuthenticationGate({ children }: { children: ReactNode }) {
   const configured = Boolean(
     clientId && tenantId && !clientId.includes("your-") && !tenantId.includes("your-"),
   );
+  const handleLogin = async () => {
+    if (inProgress !== InteractionStatus.None) {
+      return;
+    }
+
+    await instance.loginRedirect({ scopes: ["User.Read"] });
+  };
 
   useEffect(() => {
     if (inProgress !== "none" || accounts.length || redirectStarted || !configured) return;
+
     setRedirectStarted(true);
     instance.loginRedirect({ scopes: ["User.Read"] }).catch((error) => {
       console.error("Microsoft sign-in failed", error);
@@ -50,6 +63,7 @@ function AuthenticationGate({ children }: { children: ReactNode }) {
         </div>
       </div>
     );
+
   if (!accounts.length || inProgress !== "none")
     return (
       <div className="boot-screen">
@@ -58,9 +72,10 @@ function AuthenticationGate({ children }: { children: ReactNode }) {
         <p>Redirecting you to your organisation’s sign-in page…</p>
         <button
           className="primary-btn"
-          onClick={() => instance.loginRedirect({ scopes: ["User.Read"] })}
+          onClick={handleLogin}
+          disabled={inProgress !== InteractionStatus.None}
         >
-          Continue to sign in
+          {inProgress === InteractionStatus.None ? "Sign in" : "Signing in..."}
         </button>
       </div>
     );
