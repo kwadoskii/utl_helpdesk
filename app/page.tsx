@@ -1,5 +1,10 @@
-import App from "../src/App";
+import DashboardPage from "@/components/helpdesk/DashboardPage";
+import RequireSupport from "@/components/helpdesk/RequireSupport";
 
 export default function Page() {
-  return <App />;
+  return (
+    <RequireSupport>
+      <DashboardPage />
+    </RequireSupport>
+  );
 }

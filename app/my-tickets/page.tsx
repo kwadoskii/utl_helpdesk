@@ -1,2 +1,5 @@
-import App from "../../src/App";
-export default function RoutePage() { return <App />; }
+import MyTicketsPage from "@/components/helpdesk/MyTicketsPage";
+
+export default function MyTicketsRoute() {
+  return <MyTicketsPage />;
+}

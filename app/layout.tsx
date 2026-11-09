@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Providers from "./providers";
 import "./globals.css";
+import HelpdeskLayout from "@/components/helpdesk/HelpdeskLayout";
 
 export const metadata: Metadata = {
   title: "Helpdesk | MIS Support Portal",
@@ -11,7 +12,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <HelpdeskLayout>{children}</HelpdeskLayout>
+        </Providers>
       </body>
     </html>
   );

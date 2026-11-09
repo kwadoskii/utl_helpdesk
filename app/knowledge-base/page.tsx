@@ -1,2 +1,5 @@
-import App from "../../src/App";
-export default function RoutePage() { return <App />; }
+import KnowledgeBasePage from "@/components/helpdesk/KnowledgeBasePage";
+
+export default function KnowledgeBaseRoute() {
+  return <KnowledgeBasePage />;
+}

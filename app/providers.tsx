@@ -47,7 +47,7 @@ function AuthenticationGate({ children }: { children: ReactNode }) {
 
   if (!configured)
     return (
-      <div className="auth-screen">
+      <div className="app dark auth-screen">
         <div className="auth-card">
           <div className="brand-mark">MIS</div>
           <h1>Configure Microsoft sign-in</h1>
@@ -66,7 +66,7 @@ function AuthenticationGate({ children }: { children: ReactNode }) {
 
   if (!accounts.length || inProgress !== "none")
     return (
-      <div className="boot-screen">
+      <div className="app dark boot-screen">
         <div className="brand-mark">MIS</div>
         <h2>Connecting to Microsoft</h2>
         <p>Redirecting you to your organisation’s sign-in page…</p>
@@ -84,6 +84,7 @@ function AuthenticationGate({ children }: { children: ReactNode }) {
 
 export default function Providers({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
+
   useEffect(() => {
     msalInstance
       .initialize()
@@ -100,7 +101,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       })
       .catch((error) => console.error("MSAL initialization failed", error));
   }, []);
-  if (!ready) return <div className="boot-screen">Loading secure support portal…</div>;
+  if (!ready) return <div className={"boot-screen app dark"}>Loading secure support portal…</div>;
   return (
     <MsalProvider instance={msalInstance}>
       <AuthenticationGate>{children}</AuthenticationGate>

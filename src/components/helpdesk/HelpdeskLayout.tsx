@@ -22,6 +22,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { usePathname, useRouter } from "next/navigation";
 import { apiRequest } from "@/api";
 import { TicketItem } from "@/lib/types";
+import { isSupport } from "@/lib/isSupport";
 
 export default function HelpdeskLayout({ children }: { title?: string; children: ReactNode }) {
   const nav = [
@@ -49,9 +50,11 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
     "/all-tickets": "All tickets",
     "/my-tickets": "My tickets",
     "/knowledge-base": "Knowledge base",
+    "/knowledge-base/:slug": "Knowledge base",
     "/team-queue": "Team queue",
     "/reports": "Reports",
     "/settings": "Settings",
+    "/tickets/:id": "Ticket",
   };
   const router = useRouter();
   const [error, setError] = useState("");
@@ -63,7 +66,16 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
   const [myTickets, setMyTickets] = useState<TicketItem[]>([]);
 
   const pathname = usePathname();
-  const active = routeNames[pathname] || "Dashboard";
+  console.log(pathname);
+  const active =
+    routeNames[pathname] ||
+    Object.entries(routeNames).find(([route]) => {
+      const pattern = new RegExp(`^${route.replace(/:[^/]+/g, "[^/]+")}$`);
+
+      return pattern.test(pathname);
+    })?.[1] ||
+    "Dashboard";
+
   const navigate = (path: string) => {
     setMobileNav(false);
     setError("");
@@ -73,17 +85,7 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
   const { instance, accounts } = useMsal();
   const account = (accounts[0] || instance.getActiveAccount()) as AccountInfo | null;
 
-  const isSupport = Boolean(
-    account?.idTokenClaims &&
-    (((account.idTokenClaims as any).roles || []).some((r: string) =>
-      ["Support.Agent", "Support.Access"].includes(r),
-    ) ||
-      ((account.idTokenClaims as any).groups || []).includes(
-        process.env.NEXT_PUBLIC_IT_SUPPORT_GROUP_ID || "",
-      )),
-  );
-
-  const visibleNav = isSupport
+  const visibleNav = isSupport(account)
     ? nav
     : [
         {
@@ -94,7 +96,22 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
         },
       ];
 
-  const signOut = () => instance.logoutRedirect({ account: account || undefined });
+  // const signOut = () => instance.logoutRedirect({ account: account || undefined });
+
+  async function signOut() {
+    try {
+      const account = instance.getActiveAccount();
+
+      await instance.logoutRedirect({
+        account: account || undefined,
+        postLogoutRedirectUri: window.location.origin,
+      });
+    } catch (error) {
+      console.error("[MSAL LOGOUT ERROR]", error);
+
+      alert("An error occurred while logging out. Please try again.");
+    }
+  }
 
   const toggleTheme = () => {
     const next = !dark;
@@ -194,11 +211,12 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
                     {allTickets.filter((f) => f.status !== "Closed").length}
                   </span>
                 )) ||
-                  (item.name === "My tickets" && (
-                    <span className="nav-count">
-                      {myTickets.filter((f) => f.status !== "Closed").length}
-                    </span>
-                  ))}
+                  (item.name === "My tickets" &&
+                    myTickets.filter((f) => f.status !== "Closed").length > 0 && (
+                      <span className="nav-count">
+                        {myTickets.filter((f) => f.status !== "Closed").length}
+                      </span>
+                    ))}
               </button>
             ))}
           </div>
@@ -215,7 +233,7 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
             <div className="user-info">
               <strong>{account?.name || "Signed-in user"}</strong>
               <span>{account?.username}</span>
-              <span>UTL & UTLAM</span>
+              <span>{account?.username.includes("utltrustees") ? "UTL" : "UTLAM"}</span>
             </div>
             <button className="icon-btn" title="Sign out" onClick={signOut}>
               <LogOut size={16} />
