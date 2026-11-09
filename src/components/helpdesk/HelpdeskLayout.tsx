@@ -4,6 +4,9 @@ import { AccountInfo } from "@azure/msal-browser";
 import { useMsal } from "@azure/msal-react";
 import {
   Bell,
+  CheckCheck,
+  MessageSquare,
+  CircleCheck,
   BookOpen,
   FileText,
   Headphones,
@@ -21,8 +24,9 @@ import {
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { apiRequest } from "@/api";
-import { TicketItem } from "@/lib/types";
+import { NotificationItem, NotificationResponse, TicketItem } from "@/lib/types";
 import { isSupport } from "@/lib/isSupport";
+import { relativeDate } from "@/lib/relativeDate";
 
 export default function HelpdeskLayout({ children }: { title?: string; children: ReactNode }) {
   const nav = [
@@ -64,6 +68,11 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
   const [themeReady, setThemeReady] = useState(false);
   const [allTickets, setAllTickets] = useState<TicketItem[]>([]);
   const [myTickets, setMyTickets] = useState<TicketItem[]>([]);
+
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadNotifsCount, setUnreadNotifsCount] = useState(0);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notificationLoading, setNotificationLoading] = useState(false);
 
   const pathname = usePathname();
   console.log(pathname);
@@ -140,6 +149,107 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
     }
   }, [account, instance]);
 
+  const markAsRead = async (notification: NotificationItem) => {
+    if (notification.isRead) return;
+
+    try {
+      const msalClient = instance as unknown as Parameters<typeof apiRequest>[0];
+
+      await apiRequest(msalClient, account!, `/notifications/${notification._id}/read`, {
+        method: "PATCH",
+      });
+
+      setNotifications((previous) =>
+        previous.map((item) => (item._id === notification._id ? { ...item, isRead: true } : item)),
+      );
+
+      setUnreadNotifsCount((previous) => Math.max(0, previous - 1));
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    if (!account || unreadNotifsCount === 0) return;
+
+    setNotificationLoading(true);
+
+    try {
+      const msalClient = instance as unknown as Parameters<typeof apiRequest>[0];
+
+      await apiRequest(msalClient, account, "/notifications/read-all", { method: "PATCH" });
+
+      setNotifications((previous) => previous.map((item) => ({ ...item, isRead: true })));
+
+      setUnreadNotifsCount(0);
+    } catch (error) {
+      console.error("Failed to mark all notifications as read:", error);
+    } finally {
+      setNotificationLoading(false);
+    }
+  };
+
+  const openNotification = async (notification: NotificationItem) => {
+    await markAsRead(notification);
+
+    const ticketId =
+      typeof notification.ticketId === "string"
+        ? notification.ticketId
+        : notification.ticketId?._id;
+
+    setNotificationOpen(false);
+
+    if (ticketId) {
+      navigate(`/tickets/${ticketId}`);
+    }
+  };
+
+  const getNotificationIcon = (type: NotificationItem["type"]) => {
+    switch (type) {
+      case "ticket_created":
+        return <Ticket size={17} />;
+
+      case "new_message":
+        return <MessageSquare size={17} />;
+
+      case "ticket_closed":
+        return <CircleCheck size={17} />;
+
+      default:
+        return <Bell size={17} />;
+    }
+  };
+
+  const getNotifications = useCallback(async () => {
+    if (!account) return;
+
+    try {
+      const msalClient = instance as unknown as Parameters<typeof apiRequest>[0];
+
+      const response = await apiRequest<NotificationResponse>(
+        msalClient,
+        account,
+        "/notifications",
+      );
+
+      setNotifications(response.notifications || []);
+      setUnreadNotifsCount(response.unreadCount || 0);
+    } catch (error) {
+      console.error("Failed to load notifications:", error);
+    }
+  }, [account, instance]);
+
+  useEffect(() => {
+    if (!account) return;
+
+    void getNotifications();
+
+    const interval = window.setInterval(() => {
+      void getNotifications();
+    }, 5_000);
+
+    return () => window.clearInterval(interval);
+  }, [account, getNotifications]);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -266,12 +376,99 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
               />
               <kbd>⌘ K</kbd>
             </div>
+
             <button className="icon-btn" onClick={toggleTheme} title="Toggle dark mode">
               {dark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-            <button className="notification icon-btn" title="Notifications">
-              <Bell size={18} />
-            </button>
+            <div className="notification-wrapper">
+              <button
+                className={`notification icon-btn ${notificationOpen ? "notification-active" : ""}`}
+                title="Notifications"
+                aria-label={`Notifications, ${unreadNotifsCount} unread`}
+                aria-expanded={notificationOpen}
+                onClick={() => setNotificationOpen((previous) => !previous)}
+              >
+                <Bell size={19} />
+
+                {unreadNotifsCount > 0 && (
+                  <span className="notification-count">
+                    {unreadNotifsCount > 99 ? "99+" : unreadNotifsCount}
+                  </span>
+                )}
+              </button>
+
+              {notificationOpen && (
+                <div className="notification-dropdown">
+                  <div className="notification-dropdown-header">
+                    <div>
+                      <h3>Notifications</h3>
+                      <span>
+                        {unreadNotifsCount > 0
+                          ? `${unreadNotifsCount} unread notifications`
+                          : "You're all caught up"}
+                      </span>
+                    </div>
+
+                    <button
+                      className="notification-mark-all"
+                      onClick={markAllAsRead}
+                      disabled={unreadNotifsCount === 0 || notificationLoading}
+                    >
+                      <CheckCheck size={15} />
+                      Mark all read
+                    </button>
+                  </div>
+
+                  <div className="notification-list">
+                    {notifications.length === 0 ? (
+                      <div className="notification-empty">
+                        <Bell size={28} />
+                        <strong>No notifications yet</strong>
+                        <span>Updates about your tickets will appear here.</span>
+                      </div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <button
+                          key={notification._id}
+                          className={`notification-item ${!notification.isRead ? "unread" : ""}`}
+                          onClick={() => void openNotification(notification)}
+                        >
+                          <div className={`notification-item-icon ${notification.type}`}>
+                            {getNotificationIcon(notification.type)}
+                          </div>
+
+                          <div className="notification-item-content">
+                            <div className="notification-item-heading">
+                              <strong>{notification.title}</strong>
+
+                              {!notification.isRead && <span className="notification-unread-dot" />}
+                            </div>
+
+                            <p>{notification.message}</p>
+
+                            <span className="notification-time">
+                              {relativeDate(notification.createdAt)}
+                            </span>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="notification-dropdown-footer">
+                    <button
+                      onClick={() => {
+                        setNotificationOpen(false);
+                        navigate("/my-tickets");
+                      }}
+                    >
+                      View my tickets
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="avatar profile">
               {(account?.name || "MIS")
                 .split(" ")

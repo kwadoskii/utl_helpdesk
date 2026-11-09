@@ -12,6 +12,7 @@ import { ChangeEvent, SyntheticEvent, useCallback, useEffect, useState } from "r
 export default function TicketPage({ id }: { id: string }) {
   const [replyFiles, setReplyFiles] = useState<FileList | null>(null);
   const [busy, setBusy] = useState(false);
+  const [close, setClose] = useState(false);
   const [loading, setLoading] = useState(false);
   const [reply, setReply] = useState("");
   const [error, setError] = useState("");
@@ -49,7 +50,7 @@ export default function TicketPage({ id }: { id: string }) {
     if (!account) return;
     if (!window.confirm("Close this ticket? You will not be able to reply after it is closed."))
       return;
-    setBusy(true);
+    setClose(true);
     setError("");
     try {
       const t = await apiRequest<TicketItem>(instance, account, `/tickets/${id}/close`, {
@@ -64,7 +65,7 @@ export default function TicketPage({ id }: { id: string }) {
     } finally {
       // setSelectedId("");
       // setSelectedTicket(null);
-      setBusy(false);
+      setClose(false);
     }
   }
 
@@ -213,9 +214,9 @@ export default function TicketPage({ id }: { id: string }) {
               <button
                 className="btn secondary-btn !bg-red-600/90 !text-white !text-sm"
                 onClick={closeTicket}
-                disabled={busy || loading}
+                disabled={close || loading}
               >
-                {busy ? "Closing..." : "Close Ticket"}
+                {close ? "Closing..." : "Close Ticket"}
               </button>
             )}
           </div>
