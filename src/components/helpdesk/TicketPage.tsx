@@ -181,7 +181,7 @@ export default function TicketPage({ id }: { id: string }) {
           </section>
         </div>
 
-        <section className="space-y-4 sticky top-6">
+        <section className="space-y-4 sticky top-20">
           <div className="panel shadow-md p-5 text-sm">
             <h2 className="mb-5 font-medium text-base">Ticket Details</h2>
 

@@ -354,7 +354,7 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
 
       {/* Move the existing header JSX here. */}
       <main className="main">
-        <header className="topbar">
+        <header className="topbar sticky top-0 shadow-sm z-30">
           <div className="top-left">
             <button className="icon-btn mobile-menu" onClick={() => setMobileNav(true)}>
               <Menu size={20} />
