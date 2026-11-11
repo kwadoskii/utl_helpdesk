@@ -3,10 +3,8 @@ import SettingsPage from "@/components/helpdesk/SettingsPage";
 
 export default function SettingsRoute() {
   return (
-    // <RequireSupport>
-    <>
+    <RequireSupport>
       <SettingsPage />
-    </>
-    // </RequireSupport>
+    </RequireSupport>
   );
 }
