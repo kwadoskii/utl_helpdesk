@@ -75,7 +75,6 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
   const [notificationLoading, setNotificationLoading] = useState(false);
 
   const pathname = usePathname();
-  console.log(pathname);
   const active =
     routeNames[pathname] ||
     Object.entries(routeNames).find(([route]) => {
@@ -316,11 +315,12 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
               >
                 <item.icon size={18} />
                 <span>{item.name}</span>
-                {(item.name === "All tickets" && (
-                  <span className="nav-count">
-                    {allTickets.filter((f) => f.status !== "Closed").length}
-                  </span>
-                )) ||
+                {(item.name === "All tickets" &&
+                  allTickets.filter((f) => f.status !== "Closed").length > 0 && (
+                    <span className="nav-count">
+                      {allTickets.filter((f) => f.status !== "Closed").length}
+                    </span>
+                  )) ||
                   (item.name === "My tickets" &&
                     myTickets.filter((f) => f.status !== "Closed").length > 0 && (
                       <span className="nav-count">

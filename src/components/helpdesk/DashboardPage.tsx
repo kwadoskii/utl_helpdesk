@@ -306,7 +306,9 @@ export default function DashboardPage() {
                 <p>
                   {loading
                     ? "Loading tickets from the backend…"
-                    : `Showing top ${topTickets.length} recent open tickets of ${filtered.length} ticket(s)`}
+                    : topTickets.length > 0
+                      ? `Showing top ${topTickets.length} recent open tickets of ${filtered.length} ticket(s)`
+                      : "No recent open tickets"}
                 </p>
               </div>
 
