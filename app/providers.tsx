@@ -101,7 +101,9 @@ export default function Providers({ children }: { children: ReactNode }) {
       })
       .catch((error) => console.error("MSAL initialization failed", error));
   }, []);
-  if (!ready) return <div className={"boot-screen app dark"}>Loading secure support portal…</div>;
+
+  if (!ready) return <div className={"boot-screen app dark"}>Loading MIS Support Portal…</div>;
+
   return (
     <MsalProvider instance={msalInstance}>
       <AuthenticationGate>{children}</AuthenticationGate>

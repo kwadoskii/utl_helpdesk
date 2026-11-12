@@ -99,10 +99,9 @@ export default function TicketPage({ id }: { id: string }) {
       <div className="page-heading">
         <div>
           {/* <div className="eyebrow">SUPPORT WORKSPACE</div> */}
-          <h2 className="text-xl font-bold">
-            <span className="text-sm">Ticket {ticket?.ticketNumber}:</span> {ticket?.subject}
-          </h2>
-          <p>Raised by {ticket?.requesterName}.</p>
+          <h2 className="text-xl font-bold">{ticket?.subject}</h2>
+          <h3 className="text-sm">{ticket?.ticketNumber}</h3>
+          <p>Raised by {ticket?.requesterName}</p>
         </div>
       </div>
 

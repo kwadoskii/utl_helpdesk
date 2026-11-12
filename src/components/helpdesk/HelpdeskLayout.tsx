@@ -20,6 +20,9 @@ import {
   Ticket,
   Users,
   X,
+  Monitor,
+  MonitorCog,
+  SunMoon,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -64,6 +67,7 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
+  const [themeMode, setThemeMode] = useState<"system" | "light" | "dark">("system");
   const [dark, setDark] = useState(false);
   const [themeReady, setThemeReady] = useState(false);
   const [allTickets, setAllTickets] = useState<TicketItem[]>([]);
@@ -122,12 +126,23 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
   }
 
   const toggleTheme = () => {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.classList.toggle("dark", next);
-    try {
-      localStorage.setItem("helpdesk-theme", next ? "dark" : "light");
-    } catch {}
+    const nextMode = (
+      {
+        system: "light",
+        light: "dark",
+        dark: "system",
+      } as const
+    )[themeMode];
+
+    setThemeMode(nextMode);
+    localStorage.setItem("helpdesk-theme", nextMode);
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const isDark = nextMode === "dark" || (nextMode === "system" && mediaQuery.matches);
+
+    setDark(isDark);
+    document.documentElement.classList.toggle("dark", isDark);
   };
 
   const loadTickets = useCallback(async () => {
@@ -256,13 +271,34 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
   }, [loadTickets]);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("helpdesk-theme");
-      const enabled = saved === "dark";
-      setDark(enabled);
-      document.documentElement.classList.toggle("dark", enabled);
-    } catch {}
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const applyTheme = (mode: string) => {
+      const isDark = mode === "dark" || (mode === "system" && mediaQuery.matches);
+
+      setDark(isDark);
+      document.documentElement.classList.toggle("dark", isDark);
+    };
+
+    const saved = localStorage.getItem("helpdesk-theme");
+    const initialMode: "light" | "dark" | "system" =
+      saved === "light" || saved === "dark" || saved === "system" ? saved : "system";
+
+    setThemeMode(initialMode);
+    applyTheme(initialMode);
     setThemeReady(true);
+
+    const handleSystemChange = () => {
+      if (initialMode === "system" || localStorage.getItem("helpdesk-theme") === "system") {
+        applyTheme("system");
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleSystemChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleSystemChange);
+    };
   }, []);
 
   // activate central search
@@ -377,9 +413,16 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
               <kbd>⌘ K</kbd>
             </div>
 
-            <button className="icon-btn" onClick={toggleTheme} title="Toggle dark mode">
-              {dark ? <Sun size={18} /> : <Moon size={18} />}
+            <button className="icon-btn" onClick={toggleTheme} title="Toggle theme">
+              {themeMode === "system" ? (
+                <SunMoon size={18} />
+              ) : dark ? (
+                <Sun size={18} />
+              ) : (
+                <Moon size={18} />
+              )}
             </button>
+
             <div className="notification-wrapper">
               <button
                 className={`notification icon-btn ${notificationOpen ? "notification-active" : ""}`}
