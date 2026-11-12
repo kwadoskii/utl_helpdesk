@@ -8,6 +8,7 @@ import { useMsal } from "@azure/msal-react";
 import { Paperclip, Send } from "lucide-react";
 import { notFound } from "next/navigation";
 import { ChangeEvent, SyntheticEvent, useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function TicketPage({ id }: { id: string }) {
   const [replyFiles, setReplyFiles] = useState<FileList | null>(null);
@@ -15,7 +16,7 @@ export default function TicketPage({ id }: { id: string }) {
   const [close, setClose] = useState(false);
   const [loading, setLoading] = useState(false);
   const [reply, setReply] = useState("");
-  const [error, setError] = useState("");
+  // const [error, setError] = useState("");
   const [ticket, setTicket] = useState<TicketItem | null>(null);
 
   const { instance: msalInstance, accounts } = useMsal();
@@ -26,7 +27,7 @@ export default function TicketPage({ id }: { id: string }) {
     e.preventDefault();
     if (!account || (!reply.trim() && !replyFiles?.length)) return;
     setBusy(true);
-    setError("");
+    // setError("");
     try {
       const form = new FormData();
       form.append("body", reply.trim());
@@ -40,7 +41,8 @@ export default function TicketPage({ id }: { id: string }) {
       setReply("");
       setReplyFiles(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Reply could not be sent.");
+      toast.error(e instanceof Error ? e.message : "Reply could not be sent.");
+      // setError(e instanceof Error ? e.message : "Reply could not be sent.");
     } finally {
       setBusy(false);
     }
@@ -51,20 +53,17 @@ export default function TicketPage({ id }: { id: string }) {
     if (!window.confirm("Close this ticket? You will not be able to reply after it is closed."))
       return;
     setClose(true);
-    setError("");
+    // setError("");
     try {
-      const t = await apiRequest<TicketItem>(instance, account, `/tickets/${id}/close`, {
+      await apiRequest<TicketItem>(instance, account, `/tickets/${id}/close`, {
         method: "PATCH",
         body: JSON.stringify({}),
       });
-      // setSelectedTicket(t);
-      // setTickets((old) => old.map((x) => (x._id === t._id ? { ...x, ...t } : x)));
+      toast.success("Ticket closed successfully.");
       await loadTicket();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not close ticket.");
+      toast.error(e instanceof Error ? e.message : "Could not close ticket.");
     } finally {
-      // setSelectedId("");
-      // setSelectedTicket(null);
       setClose(false);
     }
   }
@@ -72,7 +71,7 @@ export default function TicketPage({ id }: { id: string }) {
   const loadTicket = useCallback(async () => {
     if (!account) return;
     setLoading(true);
-    setError("");
+    // setError("");
     try {
       const msalClient = instance as unknown as Parameters<typeof apiRequest>[0];
       const ticket = await apiRequest<TicketItem>(msalClient, account, `/tickets/${id}`);
@@ -80,7 +79,8 @@ export default function TicketPage({ id }: { id: string }) {
       setTicket(ticket);
       // setAllTickets(allTickets);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load tickets from the API.");
+      // setError(e instanceof Error ? e.message : "Could not load tickets from the API.");
+      toast.error(e instanceof Error ? e.message : "Could not load tickets from the API.");
     } finally {
       setLoading(false);
     }

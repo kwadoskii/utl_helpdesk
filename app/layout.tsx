@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
+
 import Providers from "./providers";
 import "./globals.css";
 import HelpdeskLayout from "@/components/helpdesk/HelpdeskLayout";
@@ -13,7 +15,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body>
         <Providers>
-          <HelpdeskLayout>{children}</HelpdeskLayout>
+          <HelpdeskLayout>
+            {children}
+            <Toaster position="top-right" richColors />
+          </HelpdeskLayout>
         </Providers>
       </body>
     </html>

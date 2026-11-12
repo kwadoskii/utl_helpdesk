@@ -19,6 +19,7 @@ import { Article } from "@/lib/types";
 import { AccountInfo } from "@azure/msal-browser";
 import { useMsal } from "@azure/msal-react";
 import { relativeDate } from "@/lib/relativeDate";
+import { toast } from "sonner";
 
 export default function SingleKnowledgeBasePage() {
   const params = useParams<{ slug: string }>();
@@ -35,7 +36,7 @@ export default function SingleKnowledgeBasePage() {
   const fetchArticle = async () => {
     try {
       setLoading(true);
-      setError("");
+      // setError("");
 
       // Uses the same API helper as the Knowledge Base listing page.
       const data = await apiRequest<Article>(
@@ -46,14 +47,16 @@ export default function SingleKnowledgeBasePage() {
 
       if (!data || !data.published) {
         setArticle(null);
-        setError("This article could not be found.");
+        // setError("This article could not be found.");
+        toast.error("This article could not be found.");
         return;
       }
 
       setArticle(data);
     } catch (err) {
       console.error("Failed to load knowledge article:", err);
-      setError("Unable to load this article. Please try again.");
+      // setError("Unable to load this article. Please try again.");
+      toast.error("Unable to load this article. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -74,7 +77,7 @@ export default function SingleKnowledgeBasePage() {
     );
   }
 
-  if (error || !article) {
+  if (!article) {
     return (
       <div className="page">
         {/* <Link href="/knowledge-base" className="kb-back-link">
@@ -87,7 +90,7 @@ export default function SingleKnowledgeBasePage() {
             <AlertCircle size={25} />
           </div>
           <h2>Article unavailable</h2>
-          <p>{error || "The requested article was not found."}</p>
+          <p>The requested article was not found.</p>
           <Link href="/knowledge-base" className="primary-btn">
             Browse Knowledge Base
           </Link>
