@@ -10,6 +10,7 @@ import { TicketItem } from "@/lib/types";
 import { apiRequest } from "@/api";
 import NewTicketModal from "../NewTicketModal";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function MyTicketsPage() {
   const [showNew, setShowNew] = useState(false);
@@ -20,14 +21,15 @@ export default function MyTicketsPage() {
   const { instance: msalInstance, accounts } = useMsal();
   const instance = msalInstance as import("@azure/msal-browser").PublicClientApplication;
   const account = (accounts[0] || instance.getActiveAccount()) as AccountInfo;
-  const [error, setError] = useState("");
+  // const [error, setError] = useState("");
   const [tickets, setTickets] = useState<TicketItem[]>([]);
   const router = useRouter();
 
   const loadTickets = useCallback(async () => {
     if (!account) return;
     setLoading(true);
-    setError("");
+    // setError("");
+
     try {
       const path = "/tickets?mine=true";
 
@@ -37,7 +39,8 @@ export default function MyTicketsPage() {
       //   data.some((t) => t._id === current) ? current : data[0]?._id || "",
       // );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load tickets from the API.");
+      // setError(e instanceof Error ? e.message : "Could not load tickets from the API.");
+      toast.error(e instanceof Error ? e.message : "Could not load tickets from the API.");
     } finally {
       setLoading(false);
     }

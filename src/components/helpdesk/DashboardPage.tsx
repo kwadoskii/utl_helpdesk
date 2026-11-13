@@ -1,6 +1,6 @@
 "use client";
 import { apiRequest } from "@/api";
-import { formatDate, relativeDate } from "@/lib/relativeDate";
+import { relativeDate } from "@/lib/relativeDate";
 import { Message, TicketItem } from "@/lib/types";
 import { AccountInfo } from "@azure/msal-browser";
 import { useMsal } from "@azure/msal-react";
@@ -19,6 +19,7 @@ import NewButton from "../NewTicketButton";
 import { greetUser } from "@/lib/greetUser";
 import StatusPill from "../StatusPill";
 import TicketTable from "../TicketTable";
+import { toast } from "sonner";
 
 export default function DashboardPage() {
   const [showNew, setShowNew] = useState(false);
@@ -26,7 +27,7 @@ export default function DashboardPage() {
   const { instance: msalInstance, accounts } = useMsal();
   const instance = msalInstance as import("@azure/msal-browser").PublicClientApplication;
   const account = (accounts[0] || instance.getActiveAccount()) as AccountInfo;
-  const [error, setError] = useState("");
+  // const [error, setError] = useState("");
   const [tickets, setTickets] = useState<TicketItem[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [filter, setFilter] = useState("All");
@@ -47,7 +48,6 @@ export default function DashboardPage() {
 
   const navigate = (path: string) => {
     setMobileNav(false);
-    setError("");
     router.push(path);
   };
 
@@ -55,7 +55,6 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!account || !newTitle.trim() || !newDesc.trim()) return;
     setBusy(true);
-    setError("");
     try {
       const form = new FormData();
       form.append("subject", newTitle.trim());
@@ -75,7 +74,8 @@ export default function DashboardPage() {
       setSelectedId(created._id);
       // navigate("/all-tickets");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Ticket could not be created.");
+      // setError(e instanceof Error ? e.message : "Ticket could not be created.");
+      toast.error(e instanceof Error ? e.message : "Ticket could not be created.");
     } finally {
       setBusy(false);
     }
@@ -94,7 +94,6 @@ export default function DashboardPage() {
   const loadTickets = useCallback(async () => {
     if (!account) return;
     setLoading(true);
-    setError("");
     try {
       const path = "/tickets";
 
@@ -104,7 +103,8 @@ export default function DashboardPage() {
         data.some((t) => t._id === current) ? current : data[0]?._id || "",
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load tickets from the API.");
+      // setError(e instanceof Error ? e.message : "Could not load tickets from the API.");
+      toast.error(e instanceof Error ? e.message : "Could not load tickets from the API.");
     } finally {
       setLoading(false);
     }
@@ -114,7 +114,6 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!account || !selectedTicket || (!reply.trim() && !replyFiles?.length)) return;
     setBusy(true);
-    setError("");
     try {
       const form = new FormData();
       form.append("body", reply.trim());
@@ -125,12 +124,15 @@ export default function DashboardPage() {
         `/tickets/${selectedTicket._id}/messages`,
         { method: "POST", body: form },
       );
+
       setSelectedTicket(updated);
       setTickets((old) => old.map((t) => (t._id === updated._id ? { ...t, ...updated } : t)));
       setReply("");
       setReplyFiles(null);
+      toast.success("Message sent.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Reply could not be sent.");
+      // setError(e instanceof Error ? e.message : "Reply could not be sent.");
+      toast.error(e instanceof Error ? e.message : "Reply could not be sent.");
     } finally {
       setBusy(false);
     }
@@ -171,7 +173,8 @@ export default function DashboardPage() {
       // setSelectedTicket(t);
       await loadTickets();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not claim ticket.");
+      // setError(e instanceof Error ? e.message : "Could not claim ticket.");
+      toast.error(e instanceof Error ? e.message : "Could not claim ticket.");
     } finally {
       setBusy(false);
     }
@@ -190,7 +193,8 @@ export default function DashboardPage() {
       setSelectedTicket(t);
       setTickets((old) => old.map((x) => (x._id === t._id ? { ...x, ...t } : x)));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not update ticket status.");
+      // setError(e instanceof Error ? e.message : "Could not update ticket status.");
+      toast.error(e instanceof Error ? e.message : "Could not update ticket status.");
     } finally {
       setBusy(false);
     }
@@ -201,7 +205,6 @@ export default function DashboardPage() {
     if (!window.confirm("Close this ticket? You will not be able to reply after it is closed."))
       return;
     setBusy(true);
-    setError("");
     try {
       const t = await apiRequest<TicketItem>(
         instance,
@@ -211,9 +214,12 @@ export default function DashboardPage() {
       );
       setSelectedTicket(t);
       setTickets((old) => old.map((x) => (x._id === t._id ? { ...x, ...t } : x)));
+
+      toast.success("Ticket closed successfully.");
       await loadTickets();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not close ticket.");
+      // setError(e instanceof Error ? e.message : "Could not close ticket.");
+      toast.error(e instanceof Error ? e.message : "Could not close ticket.");
     } finally {
       setSelectedId("");
       setSelectedTicket(null);

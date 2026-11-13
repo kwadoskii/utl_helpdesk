@@ -5,6 +5,7 @@ import { X, Plus, Trash2 } from "lucide-react";
 import { apiRequest } from "@/api";
 import { AccountInfo } from "@azure/msal-browser";
 import { useMsal } from "@azure/msal-react";
+import { toast } from "sonner";
 
 interface CreateKBModalProps {
   open: boolean;
@@ -26,7 +27,7 @@ export default function CreateKBModal({ open, onClose, onCreated }: CreateKBModa
   const [tagInput, setTagInput] = useState("");
 
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  // const [error, setError] = useState("");
 
   if (!open) return null;
 
@@ -48,17 +49,19 @@ export default function CreateKBModal({ open, onClose, onCreated }: CreateKBModa
     e.preventDefault();
 
     if (!account) {
-      setError("Your Microsoft account could not be identified.");
+      // setError("Your Microsoft account could not be identified.");
+      toast.error("Your Microsoft account could not be identified.");
       return;
     }
 
     if (!title.trim() || !summary.trim() || !body.trim()) {
-      setError("Please complete all required fields.");
+      // setError("Please complete all required fields.");
+      toast.info("Please complete all required fields.");
       return;
     }
 
     setSaving(true);
-    setError("");
+    // setError("");
 
     try {
       await apiRequest(instance, account, "/knowledge", {
@@ -80,10 +83,12 @@ export default function CreateKBModal({ open, onClose, onCreated }: CreateKBModa
       setTags([]);
       setTagInput("");
 
+      toast.success("Knowledge base article created successfully.");
       onCreated();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create knowledge base article.");
+      // setError(err instanceof Error ? err.message : "Could not create knowledge base article.");
+      toast.error(err instanceof Error ? err.message : "Could not create knowledge base article.");
     } finally {
       setSaving(false);
     }

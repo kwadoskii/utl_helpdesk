@@ -17,7 +17,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Providers>
           <HelpdeskLayout>
             {children}
-            <Toaster position="top-right" richColors />
+            <Toaster position="top-center" richColors />
           </HelpdeskLayout>
         </Providers>
       </body>

@@ -31,7 +31,7 @@ export default function SingleKnowledgeBasePage() {
 
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  // const [error, setError] = useState("");
 
   const fetchArticle = async () => {
     try {

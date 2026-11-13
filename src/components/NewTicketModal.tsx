@@ -5,13 +5,14 @@ import { useMsal } from "@azure/msal-react";
 import { Paperclip, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, SyntheticEvent, useState } from "react";
+import { toast } from "sonner";
 
 export default function NewTicketModal({ setShowNew }: { setShowNew: (show: boolean) => void }) {
   const [loading, setLoading] = useState(true);
   const { instance: msalInstance, accounts } = useMsal();
   const instance = msalInstance as import("@azure/msal-browser").PublicClientApplication;
   const account = (accounts[0] || instance.getActiveAccount()) as AccountInfo;
-  const [error, setError] = useState("");
+  // const [error, setError] = useState("");
   // const [tickets, setTickets] = useState<TicketItem[]>([]);
 
   const [busy, setBusy] = useState(false);
@@ -29,7 +30,8 @@ export default function NewTicketModal({ setShowNew }: { setShowNew: (show: bool
     e.preventDefault();
     if (!account || !newTitle.trim() || !newDesc.trim()) return;
     setBusy(true);
-    setError("");
+    // setError("");
+
     try {
       const form = new FormData();
       form.append("subject", newTitle.trim());
@@ -45,11 +47,13 @@ export default function NewTicketModal({ setShowNew }: { setShowNew: (show: bool
       setNewTitle("");
       setNewDesc("");
       setNewFiles(null);
+      toast.success("Ticket created successfully.");
       // await loadTickets();
       // setSelectedId(created._id);
       // navigate("/all-tickets");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Ticket could not be created.");
+      // setError(e instanceof Error ? e.message : "Ticket could not be created.");
+      toast.error(e instanceof Error ? e.message : "Ticket could not be created.");
     } finally {
       setBusy(false);
     }

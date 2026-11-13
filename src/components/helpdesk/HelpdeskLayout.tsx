@@ -30,6 +30,7 @@ import { apiRequest } from "@/api";
 import { NotificationItem, NotificationResponse, TicketItem } from "@/lib/types";
 import { isSupport } from "@/lib/isSupport";
 import { relativeDate } from "@/lib/relativeDate";
+import { toast } from "sonner";
 
 export default function HelpdeskLayout({ children }: { title?: string; children: ReactNode }) {
   const nav = [
@@ -64,7 +65,7 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
     "/tickets/:id": "Ticket",
   };
   const router = useRouter();
-  const [error, setError] = useState("");
+  // const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [themeMode, setThemeMode] = useState<"system" | "light" | "dark">("system");
@@ -90,7 +91,6 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
 
   const navigate = (path: string) => {
     setMobileNav(false);
-    setError("");
     router.push(path);
   };
 
@@ -148,7 +148,6 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
   const loadTickets = useCallback(async () => {
     if (!account) return;
     setLoading(true);
-    setError("");
     try {
       const msalClient = instance as unknown as Parameters<typeof apiRequest>[0];
       const myTickets = await apiRequest<TicketItem[]>(msalClient, account, "/tickets?mine=true");
@@ -157,7 +156,8 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
       setMyTickets(myTickets);
       setAllTickets(allTickets);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load tickets from the API.");
+      // setError(e instanceof Error ? e.message : "Could not load tickets from the API.");
+      toast.error(e instanceof Error ? e.message : "Could not load tickets from the API.");
     } finally {
       setLoading(false);
     }
@@ -179,7 +179,8 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
 
       setUnreadNotifsCount((previous) => Math.max(0, previous - 1));
     } catch (error) {
-      console.error("Failed to mark notification as read:", error);
+      // console.error("Failed to mark notification as read:", error);
+      toast.error(`Failed to mark notification as read: ${error}`);
     }
   };
 
@@ -521,14 +522,6 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
             </div>
           </div>
         </header>
-        {error && (
-          <div className="error-banner" role="alert">
-            <span>{error}</span>
-            <button className="icon-btn" onClick={() => setError("")}>
-              <X size={16} />
-            </button>
-          </div>
-        )}
         {children}
       </main>
     </div>

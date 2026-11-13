@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import NewButton from "../NewTicketButton";
 import CreateKBModal from "@/components/CreateKBModal";
 import { isSupport } from "@/lib/isSupport";
+import { toast } from "sonner";
 
 export default function KnowledgeBasePage() {
   const [articleQuery, setArticleQuery] = useState("");
@@ -34,7 +35,8 @@ export default function KnowledgeBasePage() {
 
       setArticles(data);
     } catch (e) {
-      console.error("Could not load knowledge articles:", e);
+      // console.error("Could not load knowledge articles:", e);
+      toast.error("Could not load knowledge articles.");
     } finally {
       setLoading(false);
     }
