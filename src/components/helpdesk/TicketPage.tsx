@@ -18,6 +18,7 @@ export default function TicketPage({ id }: { id: string }) {
   const [reply, setReply] = useState("");
   // const [error, setError] = useState("");
   const [ticket, setTicket] = useState<TicketItem | null>(null);
+  const [showCloseModal, setShowCloseModal] = useState(false);
 
   const { instance: msalInstance, accounts } = useMsal();
   const instance = msalInstance as import("@azure/msal-browser").PublicClientApplication;
@@ -38,6 +39,7 @@ export default function TicketPage({ id }: { id: string }) {
       });
       setTicket(updated);
       // setTickets((old) => old.map((t) => (t._id === updated._id ? { ...t, ...updated } : t)));
+      toast.success("Message sent.");
       setReply("");
       setReplyFiles(null);
     } catch (e) {
@@ -50,16 +52,17 @@ export default function TicketPage({ id }: { id: string }) {
 
   async function closeTicket() {
     if (!account) return;
-    if (!window.confirm("Close this ticket? You will not be able to reply after it is closed."))
-      return;
+
     setClose(true);
-    // setError("");
+
     try {
       await apiRequest<TicketItem>(instance, account, `/tickets/${id}/close`, {
         method: "PATCH",
         body: JSON.stringify({}),
       });
+
       toast.success("Ticket closed successfully.");
+      setShowCloseModal(false);
       await loadTicket();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not close ticket.");
@@ -211,16 +214,62 @@ export default function TicketPage({ id }: { id: string }) {
           <div className="flex flex-col">
             {ticket?.status !== "Closed" && (
               <button
-                className="btn secondary-btn !bg-red-600/90 !text-white !text-sm"
-                onClick={closeTicket}
-                disabled={close || loading}
+                className="primary-btn"
+                onClick={() => setShowCloseModal(true)}
+                disabled={close}
               >
-                {close ? "Closing..." : "Close Ticket"}
+                Close Ticket
               </button>
             )}
           </div>
         </section>
       </div>
+
+      {showCloseModal && (
+        <div className="modal-backdrop">
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="close-ticket-title"
+            style={{ maxWidth: "420px" }}
+          >
+            <div className="modal-head">
+              <div>
+                <h2 id="close-ticket-title">Close Ticket?</h2>
+                <p className="!text-sm text-black">
+                  Are you sure you want to close this ticket? You will no longer be able to reply
+                  once it is closed.
+                </p>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={() => setShowCloseModal(false)}
+                disabled={close}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={closeTicket}
+                disabled={close}
+                style={{
+                  background: "#dc2626",
+                  boxShadow: "none",
+                }}
+              >
+                {close ? "Closing..." : "Yes, Close Ticket"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
