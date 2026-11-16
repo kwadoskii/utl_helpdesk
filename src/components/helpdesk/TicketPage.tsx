@@ -2,13 +2,35 @@
 
 import { apiRequest } from "@/api";
 import { formatDate, relativeDate } from "@/lib/relativeDate";
-import { TicketItem } from "@/lib/types";
+import { MessageAttachment, TicketItem } from "@/lib/types";
 import { AccountInfo } from "@azure/msal-browser";
 import { useMsal } from "@azure/msal-react";
-import { Paperclip, Send } from "lucide-react";
+import { ExternalLink, File, FileDown, FileImage, FileText, Paperclip, Send } from "lucide-react";
 import { notFound } from "next/navigation";
 import { ChangeEvent, SyntheticEvent, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+
+const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api").replace(
+  /\/api\/?$/,
+  "",
+);
+
+function getAttachmentUrl(storageName: string) {
+  if (storageName?.startsWith("http://") || storageName?.startsWith("https://")) {
+    return storageName;
+  }
+
+  return `${API_ORIGIN}${storageName?.startsWith("/") ? storageName : `/uploads/${storageName}`}`;
+}
+
+function formatFileSize(size: number) {
+  if (!size) return "";
+
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export default function TicketPage({ id }: { id: string }) {
   const [replyFiles, setReplyFiles] = useState<FileList | null>(null);
@@ -175,8 +197,12 @@ export default function TicketPage({ id }: { id: string }) {
                       {m.createdAt ? relativeDate(m.createdAt) : "—"}
                     </p>
                   </div>
-                  <div className="panel-head flex !p-4 !pt-1">
-                    <p className="!text-sm">{m.body}</p>
+                  <div className="panel-head flex flex-col !p-4 !pt-1 !self !items-start">
+                    {m.body && (
+                      <p className="!text-sm !text-[--text] whitespace-pre-wrap">{m.body}</p>
+                    )}
+
+                    <MessageAttachments attachments={m.attachments || []} />
                   </div>
                 </div>
               ))}
@@ -270,6 +296,121 @@ export default function TicketPage({ id }: { id: string }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function MessageAttachments({ attachments }: { attachments: MessageAttachment[] }) {
+  if (!attachments?.length) return null;
+
+  return (
+    <div className="mt-4 space-y-3">
+      <p className="text-xs font-medium text-gray-500">Attachments ({attachments.length})</p>
+
+      {attachments.map((file, index) => {
+        const fileUrl = getAttachmentUrl(file.storageName);
+        console.log(fileUrl);
+        const mime = file.mimeType?.toLowerCase() || "";
+        const name = file.originalName || `Attachment ${index + 1}`;
+
+        const isImage = mime.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(name);
+
+        const isPdf = mime === "application/pdf" || /\.pdf$/i.test(name);
+
+        const isText = mime.startsWith("text/") || /\.txt$/i.test(name);
+
+        const isWord =
+          /\.(doc|docx)$/i.test(name) ||
+          mime.includes("wordprocessingml") ||
+          mime.includes("msword");
+
+        // Image attachment
+        if (isImage) {
+          return (
+            <div key={file._id || index} className="space-y-2">
+              <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                <img
+                  src={fileUrl}
+                  alt={name}
+                  className="max-w-full max-h-[320px] rounded-lg border dark:border-[--border] object-contain cursor-pointer"
+                />
+              </a>
+
+              <p className="text-xs text-gray-500">{name}</p>
+            </div>
+          );
+        }
+
+        // PDF attachment
+        if (isPdf) {
+          return (
+            <div
+              key={file._id || index}
+              className="rounded-lg border dark:border-[--border] overflow-hidden"
+            >
+              <div className="flex items-center justify-between gap-3 p-3 bg-gray-50 dark:bg-[#151a2b]">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText size={20} className="text-red-500 shrink-0" />
+
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{name}</p>
+                    <p className="text-xs text-gray-500">
+                      PDF {file.size ? `· ${formatFileSize(file.size)}` : ""}
+                    </p>
+                  </div>
+                </div>
+
+                <a
+                  href={fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-indigo-500 flex items-center gap-1 shrink-0"
+                >
+                  Open <ExternalLink size={14} />
+                </a>
+              </div>
+              {/* <iframe src={fileUrl} title={name} className="w-full h-[400px] bg-white" /> */}
+              {/* <object type="application/pdf" data={fileUrl} width="600" height="400">
+                <p>
+                  Your browser does not support PDFs. <a href={fileUrl}>Download the PDF</a>.
+                </p>
+              </object> */}
+            </div>
+          );
+        }
+
+        // Word and text attachments
+        return (
+          <a
+            key={file._id || index}
+            href={fileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            download={!isText}
+            className="flex items-center justify-between gap-3 p-3 rounded-lg border dark:border-[--border] hover:bg-gray-50 dark:hover:bg-[#151a2b] transition"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              {isWord ? (
+                <FileText size={22} className="text-blue-500 shrink-0" />
+              ) : isText ? (
+                <File size={22} className="text-gray-500 shrink-0" />
+              ) : (
+                <FileImage size={22} className="text-indigo-500 shrink-0" />
+              )}
+
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{name}</p>
+                <p className="text-xs text-gray-500">
+                  {isWord ? "Word document" : isText ? "Text file" : "Attachment"}
+                  {file.size ? ` · ${formatFileSize(file.size)}` : ""}
+                </p>
+              </div>
+            </div>
+
+            <FileDown size={18} className="text-gray-500 shrink-0" />
+          </a>
+        );
+      })}
     </div>
   );
 }

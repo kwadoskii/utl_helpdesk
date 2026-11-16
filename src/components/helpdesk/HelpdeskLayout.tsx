@@ -46,8 +46,8 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
     {
       label: "Manage",
       items: [
-        { name: "Team queue", path: "/team-queue", icon: Users },
-        { name: "Reports", path: "/reports", icon: FileText },
+        // { name: "Team queue", path: "/team-queue", icon: Users },
+        // { name: "Reports", path: "/reports", icon: FileText },
         { name: "Settings", path: "/settings", icon: Settings2 },
       ],
     },
