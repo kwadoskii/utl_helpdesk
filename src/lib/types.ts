@@ -25,7 +25,7 @@ export type Message = {
   authorEmail: string;
   body: string;
   createdAt?: string;
-  attachments?: { originalName: string; size: number }[];
+  attachments?: MessageAttachment[];
   isInternalNote?: boolean;
 };
 
@@ -65,3 +65,11 @@ export type NotificationResponse = {
   notifications: NotificationItem[];
   unreadCount: number;
 };
+
+export interface MessageAttachment {
+  _id?: string;
+  originalName: string;
+  storageName: string;
+  mimeType: string;
+  size: number;
+}

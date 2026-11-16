@@ -43,6 +43,8 @@ export default function DashboardPage() {
   const [metrics, setMetrics] = useState<any>(null);
   const [reply, setReply] = useState("");
   const [replyFiles, setReplyFiles] = useState<FileList | null>(null);
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [close, setClose] = useState(false);
 
   const router = useRouter();
 
@@ -202,9 +204,9 @@ export default function DashboardPage() {
 
   async function closeTicket() {
     if (!account || !selectedTicket) return;
-    if (!window.confirm("Close this ticket? You will not be able to reply after it is closed."))
-      return;
+    setClose(true);
     setBusy(true);
+
     try {
       const t = await apiRequest<TicketItem>(
         instance,
@@ -216,6 +218,7 @@ export default function DashboardPage() {
       setTickets((old) => old.map((x) => (x._id === t._id ? { ...x, ...t } : x)));
 
       toast.success("Ticket closed successfully.");
+      setShowCloseModal(false);
       await loadTickets();
     } catch (e) {
       // setError(e instanceof Error ? e.message : "Could not close ticket.");
@@ -224,6 +227,7 @@ export default function DashboardPage() {
       setSelectedId("");
       setSelectedTicket(null);
       setBusy(false);
+      setClose(false);
     }
   }
 
@@ -347,7 +351,7 @@ export default function DashboardPage() {
               onReply={sendReply}
               onClaim={claimTicket}
               onStatus={changeStatus}
-              onClose={closeTicket}
+              onClose={() => setShowCloseModal(true)}
               busy={busy}
               isSupport={isSupport}
             />
@@ -365,6 +369,51 @@ export default function DashboardPage() {
               </div>
             )} */}
           </>
+          {showCloseModal && (
+            <div className="modal-backdrop">
+              <div
+                className="modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="close-ticket-title"
+                style={{ maxWidth: "420px" }}
+              >
+                <div className="modal-head">
+                  <div>
+                    <h2 id="close-ticket-title">Close Ticket?</h2>
+                    <p className="!text-sm text-black">
+                      Are you sure you want to close this ticket? You will no longer be able to
+                      reply once it is closed.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={() => setShowCloseModal(false)}
+                    disabled={close}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    className="primary-btn"
+                    onClick={closeTicket}
+                    disabled={close}
+                    style={{
+                      background: "#dc2626",
+                      boxShadow: "none",
+                    }}
+                  >
+                    {close ? "Closing..." : "Yes, Close Ticket"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -569,7 +618,7 @@ function TicketConversation({
                     <strong>{m.authorName}</strong>
                     <span>{m.createdAt ? new Date(m.createdAt).toLocaleString() : ""}</span>
                   </div>
-                  <p className="!self-start">{m.body}</p>
+                  <p className="">{m.body}</p>
                   {m.attachments?.map((a, i) => (
                     <div className="attachment-chip" key={i}>
                       <Paperclip size={13} />
