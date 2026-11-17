@@ -304,7 +304,7 @@ function MessageAttachments({ attachments }: { attachments: MessageAttachment[] 
   if (!attachments?.length) return null;
 
   return (
-    <div className="mt-4 space-y-3">
+    <div className="space-y-3">
       <p className="text-xs font-medium text-gray-500">Attachments ({attachments.length})</p>
 
       {attachments.map((file, index) => {
