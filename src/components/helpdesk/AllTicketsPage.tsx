@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import NewButton from "../NewTicketButton";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
 import TicketTable from "../TicketTable";
 import { useMsal } from "@azure/msal-react";
 import { AccountInfo } from "@azure/msal-browser";
@@ -17,6 +17,8 @@ export default function AllTicketsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState("");
   const [selectedTicket, setSelectedTicket] = useState<TicketItem | null>(null);
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement | null>(null);
 
   const { instance: msalInstance, accounts } = useMsal();
   const instance = msalInstance as import("@azure/msal-browser").PublicClientApplication;
@@ -37,7 +39,6 @@ export default function AllTicketsPage() {
       //   data.some((t) => t._id === current) ? current : data[0]?._id || "",
       // );
     } catch (e) {
-      // setError(e instanceof Error ? e.message : "Could not load tickets from the API.");
       toast.error(e instanceof Error ? e.message : "Could not load tickets from the API.");
     } finally {
       setLoading(false);
@@ -47,7 +48,18 @@ export default function AllTicketsPage() {
   const filtered = [
     ...tickets.filter((t) => t.status !== "Closed"),
     ...tickets.filter((t) => t.status === "Closed"),
-  ];
+  ].filter((ticket) => {
+    if (!query) return true;
+
+    const search = query.toLowerCase();
+
+    return (
+      ticket.requesterName?.toLowerCase().includes(search) ||
+      ticket.subject?.toLowerCase().includes(search) ||
+      ticket.status?.toLowerCase().includes(search) ||
+      ticket.messages?.some((message) => message.body?.toLowerCase().includes(search))
+    );
+  });
 
   useEffect(() => {
     void loadTickets();
@@ -64,6 +76,17 @@ export default function AllTicketsPage() {
           </div>
 
           <NewButton setShowNew={() => setShowNew(true)} />
+        </div>
+
+        <div className="search-global my-3 mt-0">
+          <Search size={16} />
+          <input
+            placeholder="Search tickets..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            ref={searchRef}
+          />
+          <kbd>⌘ K</kbd>
         </div>
 
         <section className="panel">

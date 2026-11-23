@@ -8,7 +8,6 @@ import {
   MessageSquare,
   CircleCheck,
   BookOpen,
-  FileText,
   Headphones,
   LayoutDashboard,
   LogOut,
@@ -18,10 +17,7 @@ import {
   Settings2,
   Sun,
   Ticket,
-  Users,
   X,
-  Monitor,
-  MonitorCog,
   SunMoon,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
@@ -75,6 +71,7 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
   const [myTickets, setMyTickets] = useState<TicketItem[]>([]);
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const notificationRef = useRef<HTMLDivElement>(null);
   const [unreadNotifsCount, setUnreadNotifsCount] = useState(0);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [notificationLoading, setNotificationLoading] = useState(false);
@@ -268,6 +265,26 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (
+        notificationRef.current &&
+        event.target instanceof Node &&
+        !notificationRef.current.contains(event.target)
+      ) {
+        setNotificationOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
     void loadTickets();
   }, [loadTickets]);
 
@@ -303,24 +320,24 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
   }, []);
 
   // activate central search
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
+  // useEffect(() => {
+  //   const handleKeyDown = (e: KeyboardEvent) => {
+  //     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+  //       e.preventDefault();
+  //       searchRef.current?.focus();
+  //     }
 
-      if (e.key === "Escape") {
-        searchRef.current?.blur();
-      }
-    };
+  //     if (e.key === "Escape") {
+  //       searchRef.current?.blur();
+  //     }
+  //   };
 
-    window.addEventListener("keydown", handleKeyDown);
+  //   window.addEventListener("keydown", handleKeyDown);
 
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
+  //   return () => {
+  //     window.removeEventListener("keydown", handleKeyDown);
+  //   };
+  // }, []);
 
   if (!themeReady)
     return <div className={"boot-screen " + dark ? "app dark" : ""}>Loading your workspace…</div>;
@@ -403,7 +420,7 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
 
           {/* Preserve your existing header actions here. */}
           <div className="top-actions">
-            <div className="search-global">
+            {/* <div className="search-global">
               <Search size={16} />
               <input
                 placeholder="Search tickets..."
@@ -412,7 +429,7 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
                 ref={searchRef}
               />
               <kbd>⌘ K</kbd>
-            </div>
+            </div> */}
 
             <button className="icon-btn" onClick={toggleTheme} title="Toggle theme">
               {themeMode === "system" ? (
@@ -424,7 +441,7 @@ export default function HelpdeskLayout({ children }: { title?: string; children:
               )}
             </button>
 
-            <div className="notification-wrapper">
+            <div className="notification-wrapper" ref={notificationRef}>
               <button
                 className={`notification icon-btn ${notificationOpen ? "notification-active" : ""}`}
                 title="Notifications"

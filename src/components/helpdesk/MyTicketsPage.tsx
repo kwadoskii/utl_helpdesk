@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import NewButton from "../NewTicketButton";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
 import TicketTable from "../TicketTable";
 import { useMsal } from "@azure/msal-react";
 import { AccountInfo } from "@azure/msal-browser";
@@ -17,6 +17,8 @@ export default function MyTicketsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState("");
   const [selectedTicket, setSelectedTicket] = useState<TicketItem | null>(null);
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement | null>(null);
 
   const { instance: msalInstance, accounts } = useMsal();
   const instance = msalInstance as import("@azure/msal-browser").PublicClientApplication;
@@ -53,7 +55,37 @@ export default function MyTicketsPage() {
   const filtered = [
     ...tickets.filter((t) => t.status !== "Closed"),
     ...tickets.filter((t) => t.status === "Closed"),
-  ];
+  ].filter((ticket) => {
+    if (!query) return true;
+
+    const search = query.toLowerCase();
+
+    return (
+      ticket.requesterName?.toLowerCase().includes(search) ||
+      ticket.subject?.toLowerCase().includes(search) ||
+      ticket.status?.toLowerCase().includes(search) ||
+      ticket.messages?.some((message) => message.body?.toLowerCase().includes(search))
+    );
+  });
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+
+      if (e.key === "Escape") {
+        searchRef.current?.blur();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   useEffect(() => {
     void loadTickets();
@@ -70,6 +102,17 @@ export default function MyTicketsPage() {
           </div>
 
           <NewButton setShowNew={() => setShowNew(true)} />
+        </div>
+
+        <div className="search-global my-3 mt-0">
+          <Search size={16} />
+          <input
+            placeholder="Search tickets..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            ref={searchRef}
+          />
+          <kbd>⌘ K</kbd>
         </div>
 
         <section className="panel">
