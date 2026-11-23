@@ -1,2 +1,7 @@
-import App from "../../src/App";
-export default function RoutePage() { return <App />; }
+export default function RoutePage() {
+  return (
+    <>
+      <p>Hello world</p>
+    </>
+  );
+}
