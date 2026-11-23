@@ -20,6 +20,7 @@ import { greetUser } from "@/lib/greetUser";
 import StatusPill from "../StatusPill";
 import TicketTable from "../TicketTable";
 import { toast } from "sonner";
+import Link from "next/link";
 
 export default function DashboardPage() {
   const [showNew, setShowNew] = useState(false);
@@ -101,9 +102,9 @@ export default function DashboardPage() {
 
       const data = await apiRequest<TicketItem[]>(instance, account, path);
       setTickets(data);
-      setSelectedId((current) =>
-        data.some((t) => t._id === current) ? current : data[0]?._id || "",
-      );
+      // setSelectedId((current) =>
+      //   data.some((t) => t._id === current) ? current : data[0]?._id || "",
+      // );
     } catch (e) {
       // setError(e instanceof Error ? e.message : "Could not load tickets from the API.");
       toast.error(e instanceof Error ? e.message : "Could not load tickets from the API.");
@@ -574,8 +575,8 @@ function TicketConversation({
       {ticket ? (
         <>
           <div className="detail-meta">
-            <StatusPill value={ticket.status} />
             <StatusPill value={ticket.priority} />
+            <StatusPill value={ticket.status} />
             <span className="meta-text">
               Last updated {ticket.updatedAt ? relativeDate(ticket.updatedAt) : "recently"}
             </span>
@@ -620,10 +621,24 @@ function TicketConversation({
                   </div>
                   <p className="">{m.body}</p>
                   {m.attachments?.map((a, i) => (
-                    <div className="attachment-chip" key={i}>
-                      <Paperclip size={13} />
-                      {a.originalName}
-                    </div>
+                    <a
+                      href={
+                        (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000") +
+                        "/uploads/" +
+                        a.storageName
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                      className="contents"
+                      key={i}
+                    >
+                      <div
+                        className={`attachment-chip ${m.authorId === account?.localAccountId ? "self-end" : "self-start"} `}
+                      >
+                        <Paperclip size={13} />
+                        {a.originalName}
+                      </div>
+                    </a>
                   ))}
                 </div>
               </div>

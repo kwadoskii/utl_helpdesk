@@ -309,7 +309,7 @@ function MessageAttachments({ attachments }: { attachments: MessageAttachment[] 
 
       {attachments.map((file, index) => {
         const fileUrl = getAttachmentUrl(file.storageName);
-        console.log(fileUrl);
+
         const mime = file.mimeType?.toLowerCase() || "";
         const name = file.originalName || `Attachment ${index + 1}`;
 

@@ -75,7 +75,7 @@ export default function MyTicketsPage() {
         <section className="panel">
           <div className="panel-head">
             <div>
-              <h2>My Tickets</h2>
+              {/* <h2>My Tickets</h2> */}
               <p>
                 {loading ? "Loading tickets from the backend…" : `${filtered.length} ticket(s)`}
               </p>

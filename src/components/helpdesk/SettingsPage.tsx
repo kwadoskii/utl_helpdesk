@@ -24,7 +24,7 @@ import { SyntheticEvent, useCallback, useEffect, useState } from "react";
 type Tab = "smtp" | "appearance" | "notifications" | "general";
 type Theme = "light" | "dark" | "system";
 type Encryption = "none" | "ssl" | "starttls";
-type Priority = "Low" | "Medium" | "High" | "Critical";
+type Priority = "Low" | "Medium" | "High" | "Urgent";
 
 interface SmtpSettings {
   host: string;
@@ -72,10 +72,10 @@ const defaultNotifications: NotificationSettings = {
 };
 
 const defaultGeneral: GeneralSettings = {
-  helpdeskName: "IT Helpdesk",
+  helpdeskName: "",
   defaultPriority: "Medium",
   maxFileSizeMB: 10,
-  allowedFileTypes: ["jpg", "jpeg", "png", "pdf", "doc", "docx", "txt"],
+  allowedFileTypes: [],
 };
 
 const tabs = [
@@ -101,9 +101,11 @@ export default function SettingsPage() {
   const [smtp, setSmtp] = useState<SmtpSettings>(defaultSmtp);
   const [testRecipient, setTestRecipient] = useState("");
 
-  const [notifications, setNotifications] = useState<NotificationSettings>(defaultNotifications);
+  const [notificationsSettings, setNotificationsSettings] =
+    useState<NotificationSettings>(defaultNotifications);
 
   const [general, setGeneral] = useState<GeneralSettings>(defaultGeneral);
+  const [allowedFileTypesInput, setAllowedFileTypesInput] = useState("");
 
   // Load all settings from the backend
   const loadSettings = useCallback(async () => {
@@ -126,7 +128,7 @@ export default function SettingsPage() {
         password: "",
       });
 
-      setNotifications({
+      setNotificationsSettings({
         ...defaultNotifications,
         ...(data.notifications || {}),
       });
@@ -135,6 +137,7 @@ export default function SettingsPage() {
         ...defaultGeneral,
         ...(data.general || {}),
       });
+      setAllowedFileTypesInput(data.general.allowedFileTypes.join(", "));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not load settings.");
     } finally {
@@ -274,7 +277,7 @@ export default function SettingsPage() {
     try {
       await apiRequest(instance, account, "/settings/notifications", {
         method: "PUT",
-        body: JSON.stringify(notifications),
+        body: JSON.stringify(notificationsSettings),
       });
 
       toast.success("Notification preferences saved.");
@@ -623,9 +626,9 @@ export default function SettingsPage() {
 
                       <input
                         type="checkbox"
-                        checked={notifications[key]}
+                        checked={notificationsSettings[key]}
                         onChange={(e) =>
-                          setNotifications((old) => ({
+                          setNotificationsSettings((old) => ({
                             ...old,
                             [key]: e.target.checked,
                           }))
@@ -687,7 +690,7 @@ export default function SettingsPage() {
                       <option value="Low">Low</option>
                       <option value="Medium">Medium</option>
                       <option value="High">High</option>
-                      <option value="Critical">Critical</option>
+                      <option value="Urgent">Urgent</option>
                     </select>
                   </label>
 
@@ -712,13 +715,18 @@ export default function SettingsPage() {
                     Allowed File Types
                     <input
                       type="text"
-                      value={general.allowedFileTypes.join(", ")}
-                      onChange={(e) =>
+                      value={allowedFileTypesInput}
+                      onChange={(e) => setAllowedFileTypesInput(e.target.value)}
+                      onBlur={() => {
                         setGeneral({
                           ...general,
-                          allowedFileTypes: e.target.value.split(","),
-                        })
-                      }
+                          allowedFileTypes: allowedFileTypesInput
+                            .split(",")
+                            .map((type) => type.trim().toLowerCase())
+                            .filter(Boolean),
+                        });
+                        // setAllowedFileTypesInput(general.allowedFileTypes.join(", "));
+                      }}
                       placeholder="jpg, jpeg, png, pdf, doc, docx, txt"
                     />
                     <small>
